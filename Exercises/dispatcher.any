@@ -1,0 +1,279 @@
+# Each farm configures a set of load balanced renders (i.e. remote servers)
+/farms
+  {
+  # First farm entry
+  /website
+    {
+    # Request headers that should be forwarded to the remote server.
+    /clientheaders
+      {
+      # Forward all request headers that are end-to-end. If you want
+      # to forward a specific set of headers, you'll have to list
+      # them here.
+      "*"
+      }
+
+    # Hostname globbing for farm selection (virtual domain addressing)
+    /virtualhosts
+      {
+      # Entries will be compared against the "Host" request header
+      # and an optional request URL prefix.
+      #
+      # Examples:
+      #
+      #   www.company.com
+      #   intranet.*
+      #   myhost:8888/mysite
+      "*"
+      }
+
+    # The load will be balanced among these render instances
+    /renders
+      {
+      /rend01
+        {
+        # Hostname or IP of the render
+        /hostname "localhost"
+        # Port of the render
+        #/port "8080"
+        /port "4503"
+        # Connect timeout in milliseconds, 0 to wait indefinitely
+        # /timeout "0"
+        }
+      }
+
+    # The filter section defines the requests that should be handled by the dispatcher.
+    #
+    # Entries can be either specified using globs, or elements of the request line:
+    #
+    # (1) globs will be compared against the entire request line, e.g.:
+    #
+    #     /0001 { /type "deny" /glob "* /index.html *" }
+    #
+    #   matches request "GET /index.html HTTP/1.1" but not "GET /index.html?a=b HTTP/1.1".
+    #
+    # (2) method/url/query/protocol will be compared againts the respective elements of
+    #   the request line, e.g.:
+    #
+    #     /0001 { /type "deny" /method "GET" /url "/index.html" }
+    #
+    #   matches both "GET /index.html" and "GET /index.html?a=b HTTP/1.1".
+    #
+    # Note: specifying elements of the request line is the preferred method.
+    /filter
+      
+      ## deny everything and allow specific entries
+## Start with everything blocked as a safeguard and open things customers need and what's safe OOTB
+/0001 { /type "deny"  /url "*" }
+
+## Open consoles if this isn't a production environment by uncommenting the next few lines
+#/002 { /type "allow" /url "/crx/*"    }  ## allow content repository
+#/003 { /type "allow" /url "/system/*" }  ## allow OSGi console
+
+## allow non-public content directories if this isn't a production environment by uncommenting the next few lines
+#/004 { /type "allow" /url "/apps/*"   }  ## allow apps access
+#/005 { /type "allow" /url "/bin/*"    }  ## allow bin path access
+
+## This rule allows content to be access
+/0010 { /type "allow" /extension '(css|eot|gif|ico|jpeg|jpg|js|gif|pdf|png|svg|swf|ttf|woff|woff2|html|otf|txt)' /path "/content/*" }  ## disable this rule to allow mapped content only
+
+## Enable specific mime types in non-public content directories
+/0011 { /type "allow" /method "GET" /extension '(css|eot|gif|ico|jpeg|jpg|js|gif|png|svg|swf|ttf|woff|woff2)' /path "/etc/clientlibs/*" }
+
+## Enable clientlibs proxy servlet
+/0012 { /type "allow" /method "GET" /url "/etc.clientlibs/*" }
+
+## Enable basic features
+/0013 { /type "allow" /method "GET" /url '/libs/granite/csrf/token.json' /extension 'json' } ## AEM provides a framework aimed at preventing Cross-Site Request Forgery attacks
+/0014 { /type "allow" /method "POST" /url "/content/[.]*.form.html" }  ## allow POSTs to form selectors under content
+
+/0015 { /type "allow" /method "GET" /path "/libs/cq/personalization" }  ## enable personalization
+/0016 { /type "allow" /method "POST" /path "/content/[.]*.commerce.cart.json" }  ## allow POSTs to update the shopping cart
+
+## Deny content grabbing for greedy queries and prevent un-intended self DOS attacks
+/0017 { /type "deny" /selectors '(feed|rss|pages|languages|blueprint|infinity|tidy|sysview|docview|query|[0-9-]+|jcr:content)' /extension '(json|xml|html|feed)' }
+
+## Deny authoring query params
+/0018 { /type "deny" /method "GET" /query "debug=*" }
+/0019 { /type "deny" /method "GET" /query "wcmmode=*" }
+
+## Block public access to our health check page
+/0020 { /type "deny" /path "/content/ams/healthcheck/*"}
+/0021 { /type "deny" /url "/content/regent.html"}
+
+## Block Query Tools
+/0030 { /type "deny" /path "/bin/*" }
+
+## Client Libraries
+/0040 { /type "allow" /glob "GET /etc/designs/wyndham-tablet/* *"   }  # allow clientlibs
+/0041 { /type "allow" /glob "GET /etc/designs/wr/* *"               }  # allow clientlibs
+
+## Configuration Files
+/0050 { /type "allow" /url "/javascript/config.js"                  }
+/0051 { /type "allow" /url "/bin/autorecommend.json"                }
+
+## Reports
+/0060 { /type "allow" /glob "GET /var/whg-ecomm-responsive/* *"     }  # allow var for poi and sitemap
+
+## Mobile App Content
+/0070 { /type "allow" /glob "* /content/mobile-app/* *" }
+
+## Resource Type Servlets
+/0080 { /type "allow" /path "/content/whg-ecomm-responsive/*" /selectors 'model' /extension 'json'                 }  # content service
+/0081 { /type "allow" /path "/content/whg-ecomm-responsive/*" /selectors '(linklist|city-list)' /extension 'json'  }  # city list
+
+## Servlets
+/0100 { /type "allow" /url "/hotels/*"                              }  # allow hotels for servlets
+/0101 { /type "allow" /url "/bin/languagepaths.json"                }
+/0102 { /type "allow" /url "/bin/propertyDataList.json"             }
+/0103 { /type "allow" /url "/bin/propertyExteriorImage.jpg"         }
+/0104 { /type "allow" /url "/bin/propertyExteriorImage.json"        }
+/0105 { /type "allow" /url "/bin/propertySearchImage.jpg"           }
+/0106 { /type "allow" /url "/bin/propertySearchImage.json"          }
+/0107 { /type "allow" /url "/bin/propertyRoomImage.json"            }
+/0108 { /type "allow" /url "/bin/tagInfoHirarchy.json"              }
+/0109 { /type "allow" /url "/bin/propmappercache.json"              }
+/0110 { /type "allow" /url "/bin/tagInfo.json"                      }
+/0111 { /type "allow" /url "/bin/getVendorPropertyDetails"          }
+/0112 { /type "allow" /url "/bin/pdfgenerator"                      }
+/0113 { /type "allow" /url "/bin/dumpPoiFeed.txt"                   }
+
+## Enable url for ios deeplinking
+
+/0114 { /type "allow"  /url "/apple-app-site-association_iOS" } 
+     
+ 
+/0115 { /type "allow"  /url "/apple-app-site-association" } 
+
+   
+    # The cache section regulates what responses will be cached and where.
+    /cache
+      {
+      # The docroot must be equal to the document root of the webserver. The
+      # dispatcher will store files relative to this directory and subsequent
+      # requests may be "declined" by the dispatcher, allowing the webserver
+      # to deliver them just like static files.
+      #/docroot "/opt/communique/dispatcher/cache"
+      /docroot "C:/adobe/Apache2.2/htdocs"
+
+      # Sets the level upto which files named ".stat" will be created in the
+      # document root of the webserver. When an activation request for some
+      # page is received, only files within the same subtree are affected
+      # by the invalidation.
+      #/statfileslevel "0"
+
+      # Flag indicating whether to cache responses to requests that contain
+      # authorization information.
+      #/allowAuthorized "0"
+
+      /allowAuthorized "1"
+
+      # Flag indicating whether the dispatcher should serve stale content if
+      # no remote server is available.
+      #/serveStaleOnError "0"
+
+      # The rules section defines what responses should be cached based on
+      # the requested URL. Please note that only the following requests can
+      # lead to cacheable responses:
+      #
+      # - HTTP method is GET
+      # - URL has an extension
+      # - Request has no query string
+      # - Request has no "Authorization" header (unless allowAuthorized is 1)
+      /rules
+        {
+        /0000
+          {
+          # the globbing pattern to be compared against the url
+          # example: *             -> everything
+          #        : /foo/bar.*    -> only the /foo/bar documents
+          #        : /foo/bar/*    -> all pages below /foo/bar
+          #        : /foo/bar[./]* -> all pages below and /foo/bar itself
+          #        : *.html        -> all .html files
+          /glob "*"
+          /type "allow"
+          }
+		
+        }
+
+      # The invalidate section defines the pages that are "invalidated" after
+      # any activation. Please note that the activated page itself and all
+      # related documents are flushed on an modification. For example: if the
+      # page /foo/bar is activated, all /foo/bar.* files are removed from the
+      # cache.
+      /invalidate
+        {
+        /0000
+          {
+          /glob "*"
+          /type "deny"
+          }
+        /0001
+          {
+          # Consider all HTML files stale after an activation.
+          /glob "*.html"
+          /type "allow"
+          }
+        /0002
+          {
+          /glob "/etc/segmentation.segment.js"
+          /type "allow"
+          }
+        /0003
+          {
+          /glob "*/analytics.sitecatalyst.js"
+          /type "allow"
+          }
+		
+        }
+
+      # The allowedClients section restricts the client IP addresses that are
+      # allowed to issue activation requests.
+      /allowedClients
+        {
+        # Uncomment the following to restrict activation requests to originate
+        # from "localhost" only.
+        #
+        #/0000
+        #  {
+        #  /glob "*"
+        #  /type "deny"
+        #  }
+        #/0001
+        #  {
+        #  /glob "127.0.0.1"
+        #  /type "allow"
+        #  }
+        }
+
+      # The ignoreUrlParams section contains query string parameter names that
+      # should be ignored when determining whether some request's output can be
+      # cached or delivered from cache.
+      #
+      # In this example configuration, the "q" parameter will be ignored.
+      #/ignoreUrlParams
+      #  {
+      #  /0001 { /glob "*" /type "deny" }
+      #  /0002 { /glob "q" /type "allow" }
+      #  }
+
+      }
+
+    # The statistics sections dictates how the load should be balanced among the
+    # renders according to the media-type.
+    /statistics
+      {
+      /categories
+        {
+        /html
+          {
+          /glob "*.html"
+          }
+        /others
+          {
+          /glob "*"
+          }
+        }
+      }
+    }
+  }

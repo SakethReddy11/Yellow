@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?><components xmlns:scr="http://www.osgi.org/xmlns/scr/v1.0.0">
+    <scr:component enabled="true" name="com.adobe.training.core.test.HelloWorld">
+        <implementation class="com.adobe.training.core.test.HelloWorld"/>
+        <property name="service.vendor" type="String" value="Adobe"/>
+        <property name="service.pid" value="com.adobe.training.core.test.HelloWorld"/>
+    </scr:component>
+</components>

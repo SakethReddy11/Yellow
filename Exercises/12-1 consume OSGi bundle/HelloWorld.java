@@ -1,0 +1,1 @@
+package org.training.test;public class HelloWorld {public String getMessage() {	return "Hello World !!!";   }}
